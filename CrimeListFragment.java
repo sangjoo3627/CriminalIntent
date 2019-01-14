@@ -1,11 +1,16 @@
 package com.bignerdranch.android.criminalintent;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -14,9 +19,19 @@ import android.widget.TextView;
 import java.util.List;
 
 public class CrimeListFragment extends Fragment {
+    private static final String SAVED_SUBTITLE_VISIBLE = "subtitle";
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
     private int lastPositionClicked;
+    private boolean mSubtitleVisible;       // 서브타이틀의 가시성을 제어할 변수
+
+
+    // CrimeListFragment가 메뉴 콜백 호출을 받아야 한다는 것을 FragmentManager에 알려주는 코드
+    @Override
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup containier, Bundle savedInstanceState){
@@ -28,6 +43,9 @@ public class CrimeListFragment extends Fragment {
         // LayoutManager가 TextView 항목들의 화면 위치를 처리하고 스크롤 동작도 정의함
         mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));        // LinearLayoutManager는 수직 방향으로 리스트 항목을 배치시킴
 
+        if(savedInstanceState != null){
+            mSubtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VISIBLE);
+        }
         updateUI();
 
         return view;
@@ -37,6 +55,68 @@ public class CrimeListFragment extends Fragment {
     public void onResume(){
         super.onResume();
         updateUI();
+    }
+
+    // mSubtitleVisible 변수를 보존하기 위한 인스턴스 상태 보존
+    @Override
+    public void onSaveInstanceState (Bundle outState){
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(SAVED_SUBTITLE_VISIBLE, mSubtitleVisible);
+    }
+
+    // 메뉴 생성을 위한 함수 오버라이드
+    @Override
+    public void onCreateOptionsMenu (Menu menu, MenuInflater inflater){
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_crime_list, menu);
+
+        MenuItem subtitleItem = menu.findItem(R.id.menu_item_show_subtitle);
+        if(mSubtitleVisible){
+            subtitleItem.setTitle(R.string.hide_subtitle);
+        }
+        else {
+            subtitleItem.setTitle(R.string.show_subtitle);
+        }
+    }
+
+
+    // 사용자가 메뉴의 항목을 누르면 이 프래그먼트에서 아래 메서드의 콜백 호출을 받게됨
+    // 이때 어떤 액션 항목이 선택되었는지 MenuItem의 ID를 통해 알수 있고 적합한 응답을함
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case R.id.menu_item_new_crime:
+                Crime crime = new Crime();
+                CrimeLab.get(getActivity()).addCrime(crime);
+                Intent intent = CrimePagerActivity
+                        .newIntent(getContext(), crime.getId());
+                startActivity(intent);
+                return true;
+
+            case R.id.menu_item_show_subtitle:
+                mSubtitleVisible = !mSubtitleVisible;
+                getActivity().invalidateOptionsMenu();
+                updateSubtitle();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+    // 툴바의 서브타이틀 설정 (범죄 건수를 보여줌)
+    private void updateSubtitle(){
+        CrimeLab crimeLab = CrimeLab.get(getActivity());
+        int crimeCount = crimeLab.getCrimes().size();
+        @SuppressLint("StringFormatMatches") String subtitle = getString(R.string.subtitle_format, crimeCount);
+
+        if(!mSubtitleVisible) {
+            subtitle = null;
+        }
+
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        activity.getSupportActionBar().setSubtitle(subtitle);
     }
 
 
@@ -52,8 +132,10 @@ public class CrimeListFragment extends Fragment {
 
         // 디테일 화면에서 변경사항이 있을때 리스트 화면으로 돌아갈때 변경값을 알림
         else {
+            //mAdapter.notifyDataSetChanged();
             mAdapter.notifyItemChanged(lastPositionClicked);
         }
+        updateSubtitle();
 
     }
 
@@ -86,7 +168,7 @@ public class CrimeListFragment extends Fragment {
         @Override
         public void onClick(View v){
             CrimeListFragment.this.lastPositionClicked = position;
-            Intent intent = CrimeActivity.newIntent(getActivity(), mCrime.getId());
+            Intent intent = CrimePagerActivity.newIntent(getActivity(), mCrime.getId());
             startActivity(intent);
         }
     }
@@ -124,7 +206,5 @@ public class CrimeListFragment extends Fragment {
         }
 
     }
-
-
 
 }

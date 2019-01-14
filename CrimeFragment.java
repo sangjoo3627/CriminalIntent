@@ -1,7 +1,10 @@
 package com.bignerdranch.android.criminalintent;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.text.format.DateFormat;
@@ -13,11 +16,14 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
+import java.util.Date;
 import java.util.UUID;
 
 public class CrimeFragment extends Fragment {
 
     private static final String ARG_CRIME_ID = "crime_id";      // 프래그먼트 인자 첨부를 위한 키값
+    private static final String DIALOG_DATE = "DialogDate";
+    private static final int REQUEST_DATE = 0;
     private Crime mCrime;
     private EditText mTitleField;
     private Button mDateButton;
@@ -72,12 +78,22 @@ public class CrimeFragment extends Fragment {
 
         // Date 버튼 컨트롤
         mDateButton = (Button) v.findViewById(R.id.crime_date);
+        updateDate();
 
         DateFormat df = new DateFormat();
 
 
         mDateButton.setText(df.format("EEE, MMM d, yyyy",mCrime.getDate()).toString());
-        mDateButton.setEnabled(false);
+        mDateButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                // 프래그먼트 매니저와 DatePickerFragment 인스턴스를 생성한 후 show()로 화면에 보여줌
+                FragmentManager manager = getFragmentManager();
+                DatePickerFragment dialog = DatePickerFragment.newInstance(mCrime.getDate());
+                dialog.setTargetFragment(CrimeFragment.this, REQUEST_DATE);             // DatePickerFragment 인스턴스의 목표 프래그먼트로 CrimeFragment를 설
+                dialog.show(manager, DIALOG_DATE);
+            }
+        });
 
 
         // 체크박스 컨트롤
@@ -91,5 +107,22 @@ public class CrimeFragment extends Fragment {
         });
 
         return v;
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data){
+        if(resultCode != Activity.RESULT_OK){
+            return;
+        }
+        if(requestCode == REQUEST_DATE){
+            Date date = (Date) data
+                    .getSerializableExtra(DatePickerFragment.EXTRA_DATE);
+            mCrime.setDate(date);
+            updateDate();
+        }
+    }
+
+    private void updateDate() {
+        mDateButton.setText(mCrime.getDate().toString());
     }
 }
