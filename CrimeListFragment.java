@@ -7,13 +7,16 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.List;
@@ -21,6 +24,8 @@ import java.util.List;
 public class CrimeListFragment extends Fragment {
     private static final String SAVED_SUBTITLE_VISIBLE = "subtitle";
     private RecyclerView mCrimeRecyclerView;
+    private Button mButton;
+    private LinearLayout mLayout;
     private CrimeAdapter mAdapter;
     private int lastPositionClicked;
     private boolean mSubtitleVisible;       // 서브타이틀의 가시성을 제어할 변수
@@ -42,9 +47,32 @@ public class CrimeListFragment extends Fragment {
         // recyclerview가 생성된 후에는 LayoutManger를 설정해주어야 동작함
         // LayoutManager가 TextView 항목들의 화면 위치를 처리하고 스크롤 동작도 정의함
         mCrimeRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));        // LinearLayoutManager는 수직 방향으로 리스트 항목을 배치시킴
+        mButton = (Button) view.findViewById(R.id.add_crime_button);
+        mLayout = (LinearLayout) view.findViewById(R.id.empty_list_layout);
 
         if(savedInstanceState != null){
             mSubtitleVisible = savedInstanceState.getBoolean(SAVED_SUBTITLE_VISIBLE);
+        }
+
+        // 빈 리스트일 때 보여주는 레이어
+        if (CrimeLab.get(getActivity()).getCrimes().size() <= 0){
+            mButton.setText(R.string.empty_list_add);
+            mLayout.setVisibility(View.VISIBLE);
+
+            mButton.setOnClickListener(new View.OnClickListener(){
+                @Override
+                public void onClick (View v){
+                    Crime crime = new Crime();
+                    CrimeLab.get(getActivity()).addCrime(crime);
+                    Intent intent = CrimePagerActivity
+                            .newIntent(getContext(), crime.getId());
+                    startActivity(intent);
+                }
+            });
+        }
+        else {
+            mButton.setText("");
+            mLayout.setVisibility(View.GONE);
         }
         updateUI();
 
@@ -125,6 +153,11 @@ public class CrimeListFragment extends Fragment {
         CrimeLab crimeLab = CrimeLab.get(getActivity());
         List<Crime> crimes = crimeLab.getCrimes();
 
+        // 리스트가 비었을때 빈화면을 보여줌
+        if(crimes.size() == 0){
+
+        }
+
         if (mAdapter == null){
             mAdapter = new CrimeAdapter(crimes);
             mCrimeRecyclerView.setAdapter(mAdapter);
@@ -132,6 +165,7 @@ public class CrimeListFragment extends Fragment {
 
         // 디테일 화면에서 변경사항이 있을때 리스트 화면으로 돌아갈때 변경값을 알림
         else {
+            mAdapter.setCrimes(crimes);
             //mAdapter.notifyDataSetChanged();
             mAdapter.notifyItemChanged(lastPositionClicked);
         }
@@ -161,7 +195,7 @@ public class CrimeListFragment extends Fragment {
             mCrime = crime;
             this.position = position;
             mTitleTextView.setText(mCrime.getTitle());
-            mDateTextView.setText(mCrime.getDate().toString());
+            mDateTextView.setText(new DateFormat().format("EEE, MMM d, yyyy h:mm a",mCrime.getDate()).toString());
             mSolvedCheckBox.setChecked(mCrime.isSolved());
         }
 
@@ -203,6 +237,10 @@ public class CrimeListFragment extends Fragment {
         @Override
         public int getItemCount(){
             return mCrimes.size();
+        }
+
+        public void setCrimes (List<Crime> crimes){
+            mCrimes = crimes;
         }
 
     }

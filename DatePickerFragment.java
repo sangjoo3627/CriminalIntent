@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.DatePicker;
@@ -51,6 +52,7 @@ public class DatePickerFragment extends DialogFragment {
 
         mDatePicker = (DatePicker) v.findViewById(R.id.dialog_date_date_picker);
         mDatePicker.init(year, month, day, null);           // 날짜 속성들을 정수값들로 초기화
+        Log.d("DatePickerFragment", "here1"+year+" " +month+ " " +day);
 
         // 제목과 DatePicker, 확인 버튼 하나를 갖는 AlertDiaglog를 생성하는 onCreateDialog 코드
         return new AlertDialog.Builder(getActivity())
